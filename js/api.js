@@ -2,7 +2,7 @@
 // Backend API bilan ishlash uchun
 
 const API_CONFIG = {
-    BASE_URL: 'http://127.0.0.1:8000',
+    BASE_URL: 'https://infigram-backend.onrender.com',
     ENDPOINTS: {
         // Auth
         LOGIN: '/api/auth/login/',
