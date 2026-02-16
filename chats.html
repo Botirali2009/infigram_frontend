@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infigram - Chats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; overflow: hidden; }
+        
+        .dark { background: #1a1d2e; color: #e2e8f0; }
+        .dark .bg-white { background: #1e2139; }
+        .dark .bg-gray-50 { background: #16192b; }
+        .dark .bg-gray-100 { background: #252843; }
+        .dark .border-gray-200 { border-color: #2d3250; }
+        .dark .text-gray-700 { color: #cbd5e1; }
+        .dark .text-gray-500 { color: #94a3b8; }
+        .dark .text-gray-900 { color: #f1f5f9; }
+        .dark .text-gray-600 { color: #cbd5e1; }
+        .dark .hover-lift:hover { background: #252843; }
+        
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .sidebar-link { transition: all 0.3s; }
+        .sidebar-link:hover { background: rgba(102,126,234,0.1); transform: translateX(4px); }
+        .sidebar-link.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #2d3250; border-radius: 10px; }
+        
+        .message-bubble { animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .online-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 2px solid #1e2139; position: absolute; bottom: 2px; right: 2px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+        
+        .message-sent { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
+        .message-received { background: #252843; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        
+        .sidebar { transition: transform 0.3s, width 0.3s; }
+        .sidebar.hidden { transform: translateX(-100%); width: 0; overflow: hidden; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- SIDEBAR NAVIGATION -->
+        <div id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 gradient-bg rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">I</div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Infigram</h1>
+                        <p class="text-xs text-gray-500">Bot Manager</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="dashboard.html" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600">
+                    <i class="fas fa-home text-lg"></i><span class="font-medium">Dashboard</span>
+                </a>
+                <a href="chats.html" class="sidebar-link active flex items-center space-x-3 px-4 py-3 rounded-xl">
+                    <i class="fas fa-comments text-lg"></i><span class="font-medium">Chats</span>
+                </a>
+                <a href="analytics.html" class="sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600">
+                    <i class="fas fa-chart-line text-lg"></i><span class="font-medium">Analytics</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <img id="userAvatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&bold=true" class="w-10 h-10 rounded-xl">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900" id="userName">Loading...</p>
+                        <p class="text-xs text-gray-500" id="userPlan">...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CHAT LIST -->
+        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <button id="toggleSidebar" class="p-2 hover:bg-gray-100 rounded-xl transition-all">
+                            <i class="fas fa-bars text-gray-600"></i>
+                        </button>
+                        <h2 class="text-xl font-bold text-gray-900">Messages</h2>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <button id="themeToggle" class="p-2.5 hover:bg-gray-100 rounded-xl transition-all">
+                            <i class="fas fa-sun text-gray-600"></i>
+                        </button>
+                        <button onclick="loadChats()" class="p-2.5 hover:bg-gray-100 rounded-xl transition-all">
+                            <i class="fas fa-sync-alt text-gray-600"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative mb-4">
+                    <input type="text" id="searchInput" placeholder="Search chats..." 
+                           class="w-full pl-11 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <i class="fas fa-search absolute left-4 top-3.5 text-gray-400 text-sm"></i>
+                </div>
+                
+                <!-- Bot Selector -->
+                <select id="botSelector" class="w-full px-4 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">Select a bot...</option>
+                </select>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto chat-scroll" id="chatList">
+                <div class="text-center py-12">
+                    <i class="fas fa-comments text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500">Select a bot to view chats</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CENTER: Chat Area -->
+        <div class="flex-1 flex flex-col bg-gray-50" id="chatArea">
+            <div class="flex-1 flex items-center justify-center">
+                <div class="text-center">
+                    <i class="fas fa-comments text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-700 mb-2">No chat selected</h3>
+                    <p class="text-gray-500">Select a chat to start messaging</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RIGHT SIDEBAR: User Info -->
+        <div id="userInfoPanel" class="w-80 bg-white border-l border-gray-200 flex-col hidden">
+            <!-- User info will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script>
+        if (!API.isAuthenticated()) window.location.href = 'login.html';
+        
+        let currentBotId = localStorage.getItem('currentBotId');
+        let currentChatId = null;
+        let messageInterval = null;
+        
+        // Load user info
+        const user = API.getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.username;
+            document.getElementById('userPlan').textContent = user.plan || 'Free';
+            document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${user.username}&background=667eea&color=fff&bold=true`;
+        }
+        
+        // Sidebar toggle
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        });
+        
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('themeToggle').querySelector('i');
+            icon.classList.toggle('fa-sun');
+            icon.classList.toggle('fa-moon');
+        });
+        
+        // Load bots
+        async function loadBots() {
+            const result = await API.getBots();
+            if (result.success && result.data.results) {
+                const selector = document.getElementById('botSelector');
+                selector.innerHTML = '<option value="">Select a bot...</option>';
+                
+                result.data.results.forEach(bot => {
+                    const option = document.createElement('option');
+                    option.value = bot.id;
+                    option.textContent = `${bot.name} (@${bot.username})`;
+                    if (bot.id == currentBotId) option.selected = true;
+                    selector.appendChild(option);
+                });
+                
+                if (currentBotId) loadChats();
+            }
+        }
+        
+        // Bot selector change
+        document.getElementById('botSelector').addEventListener('change', (e) => {
+            currentBotId = e.target.value;
+            localStorage.setItem('currentBotId', currentBotId);
+            if (currentBotId) loadChats();
+        });
+        
+        // Load chats
+        async function loadChats() {
+            if (!currentBotId) return;
+            
+            const chatList = document.getElementById('chatList');
+            chatList.innerHTML = '<div class="text-center py-12"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>';
+            
+            const result = await API.getChats(currentBotId);
+            
+            if (result.success && result.data.results) {
+                const chats = result.data.results;
+                
+                if (chats.length === 0) {
+                    chatList.innerHTML = '<div class="text-center py-12"><i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i><p class="text-gray-500">No chats yet</p></div>';
+                } else {
+                    chatList.innerHTML = chats.map(chat => `
+                        <div class="p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${currentChatId == chat.id ? 'bg-blue-50' : ''}" onclick="openChat(${chat.id})">
+                            <div class="flex items-start space-x-3">
+                                <div class="relative flex-shrink-0">
+                                    <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(chat.display_name)}&background=667eea&color=fff&bold=true" 
+                                         class="w-14 h-14 rounded-2xl shadow-sm">
+                                    ${chat.is_active && !chat.is_blocked ? '<span class="online-dot"></span>' : ''}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h3 class="font-semibold text-gray-900 truncate">${chat.display_name}</h3>
+                                        <span class="text-xs text-gray-400">Just now</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 truncate">${chat.username ? '@' + chat.username : 'No username'}</p>
+                                    <div class="flex items-center mt-1">
+                                        ${chat.message_count > 0 ? `<span class="text-xs text-gray-500">${chat.message_count} messages</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                chatList.innerHTML = '<div class="text-center py-12 text-red-500">Error loading chats</div>';
+            }
+        }
+        
+        // Open chat
+        async function openChat(chatId) {
+            currentChatId = chatId;
+            clearInterval(messageInterval);
+            
+            const chatArea = document.getElementById('chatArea');
+            chatArea.innerHTML = `
+                <div class="bg-white p-4 flex items-center justify-between border-b border-gray-200 shadow-sm">
+                    <div class="flex items-center space-x-3">
+                        <img id="chatAvatar" src="" class="w-12 h-12 rounded-2xl shadow-md">
+                        <div>
+                            <h2 class="font-bold text-gray-900" id="chatName">Loading...</h2>
+                            <p class="text-sm text-gray-500" id="chatStatus">...</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2.5 hover:bg-gray-100 rounded-xl transition-all">
+                            <i class="fas fa-search text-gray-600"></i>
+                        </button>
+                        <button class="p-2.5 hover:bg-gray-100 rounded-xl transition-all">
+                            <i class="fas fa-ellipsis-v text-gray-600"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto chat-scroll p-6 space-y-4" id="messagesContainer">
+                    <div class="text-center py-12">
+                        <i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-4 border-t border-gray-200 shadow-lg">
+                    <div class="flex items-center space-x-3">
+                        <button class="text-gray-400 hover:text-purple-600 transition-all">
+                            <i class="fas fa-paperclip text-2xl"></i>
+                        </button>
+                        <div class="flex-1 relative">
+                            <input type="text" id="messageInput" placeholder="Type a message..." 
+                                   class="w-full px-5 py-3.5 bg-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                        </div>
+                        <button onclick="sendMessage()" class="gradient-bg w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all">
+                            <i class="fas fa-paper-plane text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Load chat info
+            const chatResult = await API.getChat(chatId);
+            if (chatResult.success) {
+                const chat = chatResult.data;
+                document.getElementById('chatName').textContent = chat.display_name;
+                document.getElementById('chatStatus').textContent = chat.is_blocked ? 'Blocked' : (chat.is_active ? 'Active' : 'Inactive');
+                document.getElementById('chatAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(chat.display_name)}&background=667eea&color=fff&bold=true`;
+            }
+            
+            // Load messages
+            loadMessages();
+            
+            // Auto-refresh messages every 3 seconds
+            messageInterval = setInterval(loadMessages, 3000);
+            
+            // Enter to send
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+        
+        // Load messages
+        async function loadMessages() {
+            if (!currentChatId) return;
+            
+            const container = document.getElementById('messagesContainer');
+            const result = await API.getMessages(currentChatId);
+            
+            if (result.success && result.data.results) {
+                const messages = result.data.results;
+                
+                if (messages.length === 0) {
+                    container.innerHTML = '<div class="text-center py-12"><p class="text-gray-500">No messages yet</p></div>';
+                } else {
+                    container.innerHTML = messages.map(msg => {
+                        const isSent = msg.sender === 'bot';
+                        return `
+                            <div class="flex items-start space-x-3 ${isSent ? 'justify-end' : ''} message-bubble">
+                                ${!isSent ? '<img src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&bold=true" class="w-9 h-9 rounded-xl mt-1 shadow-sm">' : ''}
+                                <div class="${isSent ? 'message-sent' : 'message-received'} rounded-2xl ${isSent ? 'rounded-tr-md' : 'rounded-tl-md'} p-4 max-w-md">
+                                    ${msg.text ? `<p class="${isSent ? 'text-white' : 'text-gray-200'} leading-relaxed">${msg.text}</p>` : ''}
+                                    ${msg.message_type !== 'text' ? `<p class="text-sm opacity-80">[${msg.message_type}]</p>` : ''}
+                                    <span class="text-xs ${isSent ? 'text-white opacity-90' : 'text-gray-400'} mt-2 block">
+                                        ${new Date(msg.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}
+                                        ${isSent ? '<i class="fas fa-check-double ml-1"></i>' : ''}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    // Scroll to bottom
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !currentChatId) return;
+            
+            input.value = '';
+            input.disabled = true;
+            
+            const result = await API.sendMessage(currentChatId, text);
+            
+            if (result.success) {
+                loadMessages();
+            } else {
+                alert('Failed to send message: ' + result.error);
+            }
+            
+            input.disabled = false;
+            input.focus();
+        }
+        
+        // Initialize
+        loadBots();
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            clearInterval(messageInterval);
+        });
+    </script>
+</body>
+</html>
