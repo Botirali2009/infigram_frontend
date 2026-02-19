@@ -2,7 +2,7 @@
 // Backend API bilan ishlash uchun
 
 const API_CONFIG = {
-    BASE_URL: 'https://infigram-backend.onrender.com',
+    BASE_URL: 'https://botirali.pythonanywhere.com',
     ENDPOINTS: {
         // Auth
         LOGIN: '/api/auth/login/',
